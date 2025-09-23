@@ -1,0 +1,8 @@
+# Wordbank Github
+https://github.com/langcog/wordbank
+
+# wordbankr R interface Github
+https://github.com/langcog/wordbankr
+
+# NYUCCL Github
+https://github.com/NYUCCL/duolingoSLAM
