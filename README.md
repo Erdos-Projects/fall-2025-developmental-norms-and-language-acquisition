@@ -7,9 +7,9 @@ Do words acquired later in first-language development (L1) show higher error rat
 ## Data:
 
 ### Duolingo SLAM Dataset:
-•	Large corpus of data from over 6,000 Duolingo users, collected during their first 30 days of learning a language
-•	Released in 2018 as part of the Duolingo Shared Task on Second Language Acquisition Modeling (SLAM).
-•	Potential features to use: practice history, time since last exposure, item difficulty, etc.
+-	Large corpus of data from over 6,000 Duolingo users, collected during their first 30 days of learning a language
+-	Released in 2018 as part of the Duolingo Shared Task on Second Language Acquisition Modeling (SLAM).
+-	Potential features to use: practice history, time since last exposure, item difficulty, etc.
 ### WordBank Dataset:
-•	Open database of children’s vocabulary growth.
-•	Aggregates data from the [MacArthur–Bates Communicative Development Inventories](https://mb-cdi.stanford.edu/) (CDIs).
+-	Open database of children’s vocabulary growth.
+-	Aggregates data from the [MacArthur–Bates Communicative Development Inventories](https://mb-cdi.stanford.edu/) (CDIs).
