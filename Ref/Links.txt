@@ -8,7 +8,7 @@ https://github.com/langcog/wordbankr
 https://github.com/NYUCCL/duolingoSLAM
 
 # A deep learning model based on Duolingo SLAM Shared Task
-https://doi.org/10.7910/DVN/8SWHNO
+https://github.com/nathgoh/CS230-Duolingo
 
 # Duolingo vocab lists and scraping scripts
 https://github.com/jmbeach/duolingo-vocab-lists
