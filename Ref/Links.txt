@@ -6,3 +6,6 @@ https://github.com/langcog/wordbankr
 
 # NYUCCL Github
 https://github.com/NYUCCL/duolingoSLAM
+
+# A deep learning model based on Duolingo SLAM Shared Task
+https://doi.org/10.7910/DVN/8SWHNO
