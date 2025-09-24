@@ -10,6 +10,10 @@ Do words acquired later in first-language development (L1) show higher error rat
 -	Large corpus of data from over 6,000 Duolingo users, collected during their first 30 days of learning a language
 -	Released in 2018 as part of the [Duolingo Shared Task on Second Language Acquisition Modeling (SLAM)](https://sharedtask.duolingo.com/2018.html).
 -	Potential features to use: practice history, time since last exposure, item difficulty, etc.
+-   Publicly available via [Harvard Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/8SWHNO) or linked from Duolingo Research.
+
 ### WordBank Dataset:
 -	Open database of children’s vocabulary growth.
 -	Aggregates data from the [MacArthur–Bates Communicative Development Inventories](https://mb-cdi.stanford.edu/) (CDIs).
+-   Potential features: Age of Acquistion (AoA),category (noun, verb, semantic field), production/comprehension probabilities.
+-   Publicly available at [wordbank.stanford.edu](https://wordbank.stanford.edu).
