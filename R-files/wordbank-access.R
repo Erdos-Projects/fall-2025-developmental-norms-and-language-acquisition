@@ -4,13 +4,19 @@
 library(DBI)
 library(RMariaDB)
 
-# Define the connection arguments
-db_host <- "wordbank2-prod-20240205.canyiscnpddk.us-west-2.rds.amazonaws.com"
-db_port <- 3306 
-db_user <- "wordbank_reader"
-db_pass <- "REMOVED-BY-GIT-FILTER-REPO"
-db_name <- "wordbank"
+#--------------------------------------------------------------
+# NOTE ON CREDENTIALS:
+# Database settings are loaded from environment variables (e.g., from a .Renviron file).
+# For public, read-only credentials see : https://wordbank.stanford.edu/db_args/
+# -------------------------------------------------------------
 
+# Define the connection arguments by reading environment variables
+readRenviron(".Renviron") # NOTE: Must run in the same directory as the .Renviron file
+db_host <- Sys.getenv("WORDBANK_HOST")
+db_port <- Sys.getenv("WORDBANK_PORT")
+db_user <- Sys.getenv("WORDBANK_USER")
+db_pass <- Sys.getenv("WORDBANK_PASS")
+db_name <- "wordbank"
 # Create the new, fresh connection object
 wordbank_con <- dbConnect(
   RMariaDB::MariaDB(),
@@ -22,7 +28,7 @@ wordbank_con <- dbConnect(
   ssl.mode = "disabled" # Bypasses the SSL negotiation error
 )
 
-# --- 2. QUERY THE DATA (Run this immediately after connection) ---
+# --- 2. QUERY THE DATA (Run this immediately after connection)
 
 library(dplyr)
 # Use dbReadTable for the small instrument metadata table
