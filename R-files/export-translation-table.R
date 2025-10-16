@@ -9,6 +9,7 @@ library(tidyr)
 
 insts <- get_instruments()
 # If the above breaks, make sure you're using the updated wordbankr library
+# devtools::install("~/github/wordbankr")
 
 # --- 1. Consolidated Vocabulary Retrieval (WG + WS) ---
 
