@@ -4,6 +4,7 @@ import pandas as pd
 
 # TODO: Add correctness from key/test
 
+
 def parse_slam(input_path: Path) -> pd.DataFrame:
     """Process a single dataset in SLAM format into a pandas DataFrame.
 
@@ -71,18 +72,14 @@ def parse_slam(input_path: Path) -> pd.DataFrame:
     )
 
     # Check whether input_path is dev or test/if so, merge in the key file
-    if input_path.name in ['dev', 'test']:
+    if input_path.name in ["dev", "test"]:
         key_dat = pd.read_csv(
             input_path.parent / (input_path.name + ".key"),
             sep=" ",
             header=None,
-            names=["token_id", "token_wrong"]
+            names=["token_id", "token_wrong"],
         )
-        dat = dat.merge(
-            key_dat, on="token_id",
-            how="left",
-            validate="one_to_one"
-        )
+        dat = dat.merge(key_dat, on="token_id", how="left", validate="one_to_one")
 
     # Add the language column based on the filename
     dat["l2"], dat["l1"] = input_path.name.split(".", 1)[0].split("_")
@@ -94,6 +91,7 @@ def parse_slam(input_path: Path) -> pd.DataFrame:
         dat["token_wrong"] = dat["token_wrong"].astype(int)
 
     return dat
+
 
 def concat_and_write(paths, out_path: Path, parse_fn=parse_slam) -> pd.DataFrame:
     """Parse a list of SLAM files, concatenate them, write to parquet, and return the DataFrame.
@@ -107,6 +105,7 @@ def concat_and_write(paths, out_path: Path, parse_fn=parse_slam) -> pd.DataFrame
     all_dats.to_parquet(out_path, index=False)
     print(f"Wrote {len(all_dats)} rows to {out_path}")
     return None
+
 
 def main():
     train_path = [
@@ -129,7 +128,18 @@ def main():
     concat_and_write(test_path, Path("data/processed/test_slam.parquet"))
     concat_and_write(dev_path, Path("data/processed/dev_slam.parquet"))
 
+    # Cocatenate all unique tokens into a single file
+    token_dats = []
+    for lang in ["train", "test", "dev"]:
+        lang_path = Path(f"data/processed/{lang}_slam.parquet")
+        lang_dat = pd.read_parquet(lang_path)
+        token_dats.append(lang_dat[["token", "l2", "l1"]])
+    all_tokens = pd.concat(token_dats).drop_duplicates().reset_index(drop=True)
+    all_tokens.to_parquet("data/processed/tokens_slam.parquet", index=False)
+    print(
+        f"Wrote {len(all_tokens)} unique tokens to data/processed/tokens_slam.parquet"
+    )
+
+
 if __name__ == "__main__":
     main()
-
-
