@@ -2,8 +2,7 @@ import re
 from pathlib import Path
 import pandas as pd
 
-# TODO: Add correctness from key
-# TODO: Add codebook
+# TODO: Add correctness from key/test
 
 def parse_slam(input_path: Path) -> pd.DataFrame:
     """Process a single dataset in SLAM format into a pandas DataFrame.
@@ -48,14 +47,10 @@ def parse_slam(input_path: Path) -> pd.DataFrame:
                     "token_edges": parts[5],
                 }
                 if len(parts) > 6:
-                    token_record["token_correct"] = parts[6]
+                    token_record["token_wrong"] = parts[6]
                 block_dict.setdefault("tokens", []).append(token_record)
 
-        # Calculate prompt and token lengths if prompt exists
-        if block_dict.get("prompt"):
-            split_prompt = block_dict["prompt"].split()
-            block_dict["prompt_length"] = len(split_prompt)
-            block_dict["token_length"] = len(block_dict.get("tokens", []))
+        # Append the processed block dictionary to the list
         list_of_blocks.append(block_dict)
 
     dat = pd.json_normalize(
@@ -64,8 +59,6 @@ def parse_slam(input_path: Path) -> pd.DataFrame:
         meta=[
             "block_id",
             "prompt",
-            "prompt_length",
-            "token_length",
             "user",
             "countries",
             "days",
@@ -77,15 +70,28 @@ def parse_slam(input_path: Path) -> pd.DataFrame:
         errors="ignore",
     )
 
+    # Check whether input_path is dev or test/if so, merge in the key file
+    if input_path.name in ['dev', 'test']:
+        key_dat = pd.read_csv(
+            input_path.parent / (input_path.name + ".key"),
+            sep=" ",
+            header=None,
+            names=["token_id", "token_wrong"]
+        )
+        dat = dat.merge(
+            key_dat, on="token_id",
+            how="left",
+            validate="one_to_one"
+        )
+
     # Add the language column based on the filename
-    language = input_path.name.split(".", 1)[0]
-    dat["language"] = language
+    dat["l2"], dat["l1"] = input_path.name.split(".", 1)[0].split("_")
 
     # Handle data types
     dat["days"] = pd.to_numeric(dat["days"], errors="coerce")
     dat["time"] = pd.to_numeric(dat["time"].replace("null", ""), errors="coerce")
-    if "token_correct" in dat.columns:
-        dat["token_correct"] = dat["token_correct"].astype(int)
+    if "token_wrong" in dat.columns:
+        dat["token_wrong"] = dat["token_wrong"].astype(int)
 
     return dat
 
