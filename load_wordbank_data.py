@@ -97,7 +97,7 @@ def split_row(df, old_item_definition, new_item_definitions, new_lemmas):
 
 # This is the top-level function to read in and clean the Wordbank data
 def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
-                                 inventory, measure,
+                                 lang, inventory, measure,
                                  items_to_split=None, cols_to_drop=None):
     '''
     Reads in the Wordbank data and the uni_lemma mapping data, cleans the data by removing
@@ -117,6 +117,7 @@ def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
     # Remove unnecessary columns
     if 'downloaded' in df.columns:
         df.drop(columns=['downloaded'], inplace=True)
+    df['l1'] = lang
     df['inventory'] = inventory
     df['measure'] = measure
     # Read in the uni_lemma mapping data
@@ -134,8 +135,9 @@ def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
     if cols_to_drop:
         df.drop(columns=cols_to_drop, inplace=True)
     # Reorder Columns
+    df = df.rename(columns={'item_definition': 'token'})
     # Define the desired core columns in order
-    core_cols = ['item_id', 'inventory', 'measure', 'uni_lemma', 'item_definition']
+    core_cols = ['item_id', 'l1', 'inventory', 'measure', 'uni_lemma', 'token']
     # Filter core_cols to only include those present in the main DataFrame
     present_core_cols = [col for col in core_cols if col in df.columns]
     # Get all columns that are NOT the core columns, maintaining their original order

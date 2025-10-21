@@ -96,8 +96,8 @@ def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit):
     # a larger palette. This guarantees different label strings map to different
     # colors deterministically.
     # Define custom 3-color palette (Blue, Orange, Purple)
-    #CUSTOM_COLORS = ['#0000FF', '#ff7f0e', '#9467bd']
-    CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9467bd']
+    #CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9467bd']
+    CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9e1cd6']
     
     if len(label_vals) <= len(CUSTOM_COLORS):
         # Use specific colors for 3 or fewer sources
@@ -231,6 +231,8 @@ def compute_curve_fits(dfs, match_col='uni_lemma'):
 
     # Build the results DataFrame keyed by the matching column
     df_curve_fits = primary[[match_col]].copy()
+    for col in ['token', 'l1', 'category']:
+        df_curve_fits[col] = primary[col]
     df_curve_fits['growth_rate'] = results['growth_rate']
     df_curve_fits['median_aoa'] = results['median_aoa']
     df_curve_fits['__plot_data__'] = results['__plot_data__']
@@ -283,3 +285,9 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
     fig.suptitle('Combined Acquisition Curve Fits', fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.98])  # Adjust rect to make space for suptitle
     plt.show()
+
+def compute_and_export_curve_fits(path_to_write, dfs, match_col='uni_lemma'):
+    df_curve_fits = compute_curve_fits(dfs, match_col=match_col)
+    df_for_export = df_curve_fits.drop(columns=['__plot_data__'])
+    df_for_export.to_csv(path_to_write, index=False)
+    return f"Curve fits written to {path_to_write}"
