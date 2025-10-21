@@ -244,7 +244,7 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
     """
     Plot the curve fits stored in df_curve_fits produced by compute_curve_fits.
 
-    df_curve_fits must contain columns: 'item_definition', 'growth_rate', 'median_aoa', '__plot_data__'.
+    df_curve_fits must contain columns: 'uni_lemma', 'token', 'growth_rate', 'median_aoa', '__plot_data__'.
     """
     valid_fits = df_curve_fits[~pd.isna(df_curve_fits['growth_rate'])]
     num_plots = len(valid_fits)
@@ -262,9 +262,7 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
 
     plot_index = 0
     for index, row in valid_fits.iterrows():
-        # Use the first column in df_curve_fits (e.g., match_col like 'uni_lemma' or 'item_definition')
-        first_col = df_curve_fits.columns[0]
-        word = row[first_col]
+        word = row['token'] # title of plot is token
         k_fit = row['growth_rate']
         x0_fit = row['median_aoa']
         df_plot_data = row['__plot_data__']
