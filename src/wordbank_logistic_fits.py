@@ -6,11 +6,17 @@ from scipy.optimize import curve_fit
 import math
 import hashlib
 
-# 2-parameter sigmoid function for logistic fits
 def sigmoid(age, k, x0):
     """
-    k: Growth rate.
-    x0: Inflection point / median_aoa.
+    2-parameter sigmoid function used for logistic curve fitting.
+    
+    Args:
+        age (float/np.array): The age in months (x-axis value).
+        k (float): The growth rate (steepness) of the curve.
+        x0 (float): The inflection point, corresponding to median Age of Acquisition (median_aoa).
+        
+    Returns:
+        float/np.array: The fitted proportion (y-axis value).
     """
     return 1 / (1 + np.exp(-k * (age - x0)))
 
@@ -18,7 +24,17 @@ def sigmoid(age, k, x0):
 
 def row_to_df_for_fit(row_data):
     """
-    Transforms a single wide-format row into a clean long-format DataFrame.
+    Transforms a single wide-format row (representing one item/uni_lemma) into a clean, 
+    long-format DataFrame suitable for curve fitting.
+    
+    Args:
+        row_data (pd.Series or pd.DataFrame): A single row of wide-format Wordbank data.
+            It must contain columns named with digits (age in months) and optionally 
+            metadata columns like 'inventory', 'measure', and 'uni_lemma'.
+
+    Returns:
+        pd.DataFrame: A long-format DataFrame with columns ['Age', 'Proportion Acquired', 
+            'inventory', 'measure', 'uni_lemma']. Ages are ensured to be integers and sorted.
     """
     if isinstance(row_data, pd.Series):
         df_row = row_data.to_frame().T
@@ -59,7 +75,15 @@ def row_to_df_for_fit(row_data):
 
 def calculate_sigmoid_params(df_combined):
     """
-    Fits the sigmoid curve to the combined long-format data. 
+    Fits the 2-parameter sigmoid curve (logistic regression) to the long-format data. 
+    
+    Args:
+        df_combined (pd.DataFrame): Long-format DataFrame containing acquisition data. 
+            Must contain columns 'Age' (x-values) and 'Proportion Acquired' (y-values).
+            
+    Returns:
+        pd.Series: A Series with keys 'growth_rate' (k) and 'median_aoa' (x0). 
+            Returns NaN for both if the fitting optimization fails (RuntimeError).
     """
     X = df_combined['Age'].values
     Y = df_combined['Proportion Acquired'].values
@@ -79,6 +103,17 @@ def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit):
     """
     Generates a scatter plot of the raw data, overlays the fitted logistic curve,
     and adds median AoA and 50% lines onto the provided Axes (ax) object.
+    
+    Args:
+        ax (matplotlib.axes.Axes): The Axes object to draw the plot onto.
+        word (str): The word (token) used for the plot title.
+        df_data (pd.DataFrame): Long-format DataFrame containing the raw acquisition data. 
+            Must contain 'Age', 'Proportion Acquired', 'inventory', and 'measure' columns.
+        k_fit (float): The fitted growth rate (k) for the sigmoid curve.
+        x0_fit (float): The fitted median Age of Acquisition (x0) for the sigmoid curve.
+        
+    Returns:
+        None: The function modifies the passed Matplotlib Axes object in place.
     """
     
     # Assume columns are lowercase 'inventory' and 'measure' as requested.
@@ -285,6 +320,17 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
     plt.show()
 
 def compute_and_export_curve_fits(path_to_write, dfs, match_col='uni_lemma'):
+    """
+    Computes logistic curve fits and exports the results to a CSV file.
+
+    Args:
+        path_to_write (str): The file path where the resulting CSV will be saved.
+        dfs (list[pd.DataFrame]): List of DataFrames passed to compute_curve_fits.
+        match_col (str): The column used to match items across the input DataFrames (default 'uni_lemma').
+
+    Returns:
+        str: A message confirming the file was written, including the file path.
+    """
     df_curve_fits = compute_curve_fits(dfs, match_col=match_col)
     df_for_export = df_curve_fits.drop(columns=['__plot_data__'])
     df_for_export.to_csv(path_to_write, index=False)

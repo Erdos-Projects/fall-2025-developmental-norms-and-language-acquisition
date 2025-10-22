@@ -47,14 +47,21 @@ def add_lemma_data(df_main, df_lemmas):
 
 def split_row(df, old_item_definition, new_item_definitions, new_lemmas):
     """
-    Splits a row in the DataFrame into two new rows based on new item definitions.
+    Splits a single row in the DataFrame into two new rows based on new item definitions
+    and assigned uni_lemma values. This is used for cases where a single Wordbank item
+    maps to multiple concepts (e.g., "inside/in").
+
     Args:
         df (pd.DataFrame): The original DataFrame containing the row to be split.
-        old_item_definition (str): The item_definition value of the row to be split.
-        new_item_definitions (tuple): A tuple containing the two new item_definition values.
+        old_item_definition (str): The 'item_definition' value of the row to be split.
+        new_item_definitions (tuple): A tuple containing the two new 'item_definition' 
+            values (e.g., ('inside', 'in')).
+        new_lemmas (tuple): A tuple containing the two new 'uni_lemma' values corresponding 
+            to the new item definitions.
+
     Returns:
-        pd.DataFrame: The updated DataFrame with the split rows.
-    E.g., split the "inside/in" row into two rows, one for "inside" and one for "in".
+        pd.DataFrame: The updated DataFrame with the original row removed and the 
+            two split rows added.
     """
 
     # --- 1. Isolate the row and create copies ---
@@ -100,17 +107,28 @@ def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
                                  lang, inventory, measure,
                                  items_to_split=None, cols_to_drop=None):
     '''
-    Reads in the Wordbank data and the uni_lemma mapping data, cleans the data by removing
-        unnecessary columns, adds the uni_lemma column, and reorders the columns.
-        Args:
-            path_to_wordbank_data (str): The file path to the Wordbank data CSV.
-                This file should have metadata columns item_id, item_definition, category
-                and data for each age group.
-            path_to_uni_lemma_data (str): The file path to the uni_lemma mapping CSV.
-                This file should have 2 columns: 'item_definition' and 'uni_lemma'.
-            inventory (str): The inventory type ('WG' or 'WS').
-        Returns:
-            pd.DataFrame: The cleaned and updated Wordbank DataFrame.
+    Reads in the raw Wordbank data and uni_lemma mapping, performs initial cleaning,
+    standardizes column names, and adds metadata (language, inventory, measure).
+
+    Args:
+        path_to_wordbank_data (str): The file path to the raw Wordbank data CSV 
+            (containing item metadata and age-group data).
+        path_to_uni_lemma_data (str): The file path to the uni_lemma mapping CSV 
+            (must contain 'item_definition' and 'uni_lemma').
+        lang (str): The language code (e.g., 'English', 'Spanish').
+        inventory (str): The inventory type ('WG' for Words & Gestures or 'WS' for 
+            Words & Sentences).
+        measure (str): The specific measure used ('produces', 'understands', etc.).
+        items_to_split (list of dict, optional): List of dictionaries defining rows 
+            to split. Each dict must contain keys: 'old_item_definition', 
+            'new_item_definitions' (tuple), and 'new_lemmas' (tuple). Defaults to None.
+        cols_to_drop (list of str, optional): A list of column names to remove from 
+            the DataFrame (e.g., ['category']). Defaults to None.
+
+    Returns:
+        pd.DataFrame: The cleaned and updated Wordbank DataFrame with core columns 
+            reordered to: ['item_id', 'l1', 'inventory', 'measure', 'uni_lemma', 'token'], 
+            followed by the data columns.
     '''
     # Read in the Wordbank word data
     df = pd.read_csv(path_to_wordbank_data)
