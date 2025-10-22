@@ -1,0 +1,14 @@
+# Wordbank Github
+https://github.com/langcog/wordbank
+
+# wordbankr R interface Github
+https://github.com/langcog/wordbankr
+
+# NYUCCL Github
+https://github.com/NYUCCL/duolingoSLAM
+
+# A deep learning model based on Duolingo SLAM Shared Task
+https://github.com/nathgoh/CS230-Duolingo
+
+# Duolingo vocab lists and scraping scripts
+https://github.com/jmbeach/duolingo-vocab-lists
