@@ -2,15 +2,18 @@ import re
 from pathlib import Path
 import pandas as pd
 
-# TODO: Add correctness from key/test
-
-
 def parse_slam(input_path: Path) -> pd.DataFrame:
     """Process a single dataset in SLAM format into a pandas DataFrame.
 
-    Keyword arguments:
-    input_path: path to the SLAM formatted text file
-    returns: a pandas.DataFrame with the parsed data
+    Parameters
+    ----------
+    input_path : str
+        The path to the SLAM formatted text file.
+
+    Returns
+    -------
+    pd.DataFrame
+        A pandas DataFrame containing the parsed data from the input file.
     """
 
     # Unzip and read the file content
@@ -72,7 +75,7 @@ def parse_slam(input_path: Path) -> pd.DataFrame:
     )
 
     # Check whether input_path is dev or test/if so, merge in the key file
-    if input_path.name in ["dev", "test"]:
+    if input_path.suffix in [".dev", ".test"]:
         key_dat = pd.read_csv(
             input_path.parent / (input_path.name + ".key"),
             sep=" ",
@@ -93,14 +96,22 @@ def parse_slam(input_path: Path) -> pd.DataFrame:
     return dat
 
 
-def concat_and_write(paths, out_path: Path, parse_fn=parse_slam) -> pd.DataFrame:
+def concat_and_write(paths, out_path: Path) -> pd.DataFrame:
     """Parse a list of SLAM files, concatenate them, write to parquet, and return the DataFrame.
 
-    paths: iterable of Path objects pointing to SLAM input files
-    out_path: Path where the combined parquet will be written
-    parse_fn: callable that accepts a Path and returns a pandas.DataFrame (defaults to parse_slam)
+    Parameters
+    ----------
+    paths :
+        Iterable of Path objects pointing to SLAM input files.
+    out_path : Path
+        Path where the combined parquet will be written.
+
+    Returns
+    -------
+    pd.DataFrame
+        The combined pandas DataFrame.
     """
-    dats = [parse_fn(p) for p in paths]
+    dats = [parse_slam(p) for p in paths]
     all_dats = pd.concat(dats, ignore_index=True)
     all_dats.to_parquet(out_path, index=False)
     print(f"Wrote {len(all_dats)} rows to {out_path}")
