@@ -222,17 +222,23 @@ def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit, colors=[]):
         ax.get_legend().remove()
 
 
-def compute_curve_fits(dfs, match_col='uni_lemma'):
+def compute_curve_fits(dfs, match_cols=['uni_lemma', 'token']):
     """
     Compute sigmoid fits for every row in the primary DataFrame (dfs[0]) and combine
     matching rows from other DataFrames in the list `dfs` using `match_col`.
+
+    This function identifies and returns a separate DataFrame for primary rows that 
+    were fitted using only their own data and are 'ambiguous'—meaning the uni_lemma 
+    was present in an auxiliary data frame but the token did not strictly match (uni_lemma, token).
 
     Args:
         dfs (list[pd.DataFrame]): list of DataFrames where dfs[0] is the primary (base) DF.
         match_col (str): column name used to match rows across DataFrames (default 'uni_lemma').
 
     Returns:
-        pd.DataFrame: columns [match_col, 'growth_rate', 'median_aoa', '__plot_data__']
+        Tuple[pd.DataFrame, pd.DataFrame]: 
+            - The main fitted DataFrame (df_curve_fits).
+            - A DataFrame of primary rows that are considered 'ambiguous'.
     """
     if not isinstance(dfs, (list, tuple)) or len(dfs) == 0:
         raise ValueError('dfs must be a non-empty list of DataFrames')
@@ -240,49 +246,107 @@ def compute_curve_fits(dfs, match_col='uni_lemma'):
     primary = dfs[0]
     others = dfs[1:]
 
-    # Build lookup dicts for each other DF mapping match value -> row series
+    # Convert match_cols to a list of keys for consistent handling
+    if isinstance(match_cols, str):
+        match_keys = [match_cols]
+    elif isinstance(match_cols, (list, tuple)):
+        match_keys = list(match_cols)
+    else:
+        raise TypeError("match_cols must be a string or a list/tuple of strings.")
+
+    # Build lookup dicts for each other DF mapping match value -> row series (STRICT MATCH)
     other_dicts = []
+    # Build sets of all uni_lemmas present in each auxiliary DF (AMBIGUITY CHECK)
+    uni_lemma_sets = [] 
     for odf in others:
-        if match_col not in odf.columns:
-            other_dicts.append({})
+        # 1. Strict Match Dict (for combining data)
+        if all(col in odf.columns for col in match_keys):
+            odf_indexed = odf.set_index(match_keys)
+            other_dicts.append(odf_indexed.T.to_dict('series'))
         else:
-            other_dicts.append(odf.set_index(match_col).T.to_dict('series'))
+            other_dicts.append({})
+        # 2. Uni_Lemma Set (for ambiguity check)
+        uni_lemma_sets.append(set(odf['uni_lemma'].unique()))
 
     # Nested function used by apply()
     def combined_logistic_regression(primary_row):
-        match_val = primary_row.get(match_col)
+        # Extract the key value(s) from the primary row to use for strict lookup
+        if len(match_keys) == 1:
+            match_val = primary_row.get(match_keys[0])
+        else:
+            # For a multi-index, the key is a tuple of values
+            match_val = tuple(primary_row.get(k) for k in match_keys)
+            
         row_primary_long = row_to_df_for_fit(primary_row)
 
-        # Collect matching rows from other sources; rely on each input DF's
-        # existing 'inventory' column instead of creating synthetic tags.
+        # Collect matching rows from other sources (STRICT MATCH: uni_lemma + token)
         combined_parts = [row_primary_long]
+        strict_match_found = False
         for odict in other_dicts:
             if match_val in odict:
                 other_series = odict[match_val]
                 other_long = row_to_df_for_fit(other_series)
                 combined_parts.append(other_long)
+                strict_match_found = True # At least one strict match was found
+        
+        # Flag if the fit was performed only with the primary row's data
+        only_self_fit = not strict_match_found
 
+        # --- AMBIGUOUS LOGIC ---
+        ambiguous_fit = False
+        # Only check for ambiguity if no strict match was found
+        if only_self_fit:
+            primary_uni_lemma = primary_row.get('uni_lemma')
+            
+            # Check for uni_lemma presence in any of the auxiliary sets
+            # An item is AMBIGUOUS if:
+            # 1. No strict (uni_lemma + token) match was found (only_self_fit is True)
+            # 2. BUT, the uni_lemma *was* found in an auxiliary DF
+            uni_lemma_match_found = any(primary_uni_lemma in ul_set for ul_set in uni_lemma_sets)
+            
+            if uni_lemma_match_found:
+                ambiguous_fit = True
+        
         row_df_combined = pd.concat(combined_parts, ignore_index=True)
 
         # Fit the curve
         fit_params = calculate_sigmoid_params(row_df_combined)
 
-        # Attach plot data
+        # Attach plot data and status flag
         fit_params['__plot_data__'] = row_df_combined
+        fit_params['__is_ambiguous__'] = ambiguous_fit # New flag for internal tracking
+        # We don't need __only_self_fit__ anymore, only the final ambiguity status
         return fit_params
 
     # Run the fit across primary rows
     results = primary.apply(combined_logistic_regression, axis=1)
 
-    # Build the results DataFrame keyed by the matching column
-    df_curve_fits = primary[[match_col]].copy()
-    for col in ['token', 'l1', 'category']:
-        df_curve_fits[col] = primary[col]
+    # Determine all columns needed for the results DataFrame
+    cols_to_keep = list(set(match_keys + ['token', 'l1', 'category']))
+    
+    # Build the results DataFrame
+    df_curve_fits = primary[cols_to_keep].copy()
+    
+    # Add fit results and internal flag
     df_curve_fits['growth_rate'] = results['growth_rate']
     df_curve_fits['median_aoa'] = results['median_aoa']
     df_curve_fits['__plot_data__'] = results['__plot_data__']
+    df_curve_fits['__is_ambiguous__'] = results['__is_ambiguous__']
+    
+    # 5. Identify and create the ambiguous rows DataFrame
+    df_ambiguous = df_curve_fits[df_curve_fits['__is_ambiguous__']].copy()
 
-    return df_curve_fits
+    # 6. Printing about ambiguous rows
+    if not df_ambiguous.empty:
+        print(f"\n--- Warning: {len(df_ambiguous)} primary rows were fitted using only their own data but had uni_lemma matches in auxiliary DFs. ---")
+        print(df_ambiguous[match_keys + ['growth_rate', 'median_aoa']].to_string(index=True))
+        print("------------------------------------------------------------------------------------------------")
+
+    # 7. Clean up the flag column before return (it's for internal use/logging)
+    df_curve_fits.drop(columns=['__is_ambiguous__'], inplace=True)
+    df_ambiguous.drop(columns=['__is_ambiguous__'], inplace=True, errors='ignore')
+
+    return df_curve_fits, df_ambiguous
 
 
 def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3), colors=[]):
@@ -363,7 +427,7 @@ def combine_measures(df_curve_fits_produces: pd.DataFrame, df_curve_fits_underst
 
     # Use a LEFT MERGE to join the two DataFrames on the 'uni_lemma' column.
     # 'how=left' ensures all rows from df_curve_fits_produces are kept.
-    df_curve_fits = df_curve_fits_produces.merge(
+    df_curve_fits = df_produces_renamed.merge(
         df_understands_subset,
         on='uni_lemma',  # The common column used for matching
         how='left'       # Keep all rows from the left DF (produces)
@@ -385,8 +449,8 @@ def compute_and_export_curve_fits(path_to_write, dfs_p, dfs_u, match_col='uni_le
     """
     df_curve_fits_p = compute_curve_fits(dfs_p, match_col=match_col)
     df_curve_fits_u = compute_curve_fits(dfs_u, match_col=match_col)
-    df_curve_fits_p.drop(columns=['__plot_data__'])
-    df_curve_fits_u.drop(columns=['__plot_data__'])
+    df_curve_fits_p.drop(columns=['__plot_data__'], inplace=True)
+    df_curve_fits_u.drop(columns=['__plot_data__'], inplace=True)
     df_curve_fits = combine_measures(df_curve_fits_p, df_curve_fits_u)
-    df_for_export.to_csv(path_to_write, index=False)
+    df_curve_fits.to_csv(path_to_write, index=False)
     return f"Curve fits written to {path_to_write}"

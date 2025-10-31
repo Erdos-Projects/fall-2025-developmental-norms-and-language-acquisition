@@ -142,6 +142,8 @@ def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
     uni_lemmas = pd.read_csv(path_to_uni_lemma_data)
     # Add the uni_lemma column to the main dataframe and reorder columns
     df = add_lemma_data(df, uni_lemmas)
+    # Mark which rows have non-unique uni_lemmas
+    df['synonym'] = df.duplicated(subset=['uni_lemma'], keep=False)
     # Split any rows as specified
     if items_to_split:
         for item in items_to_split:
@@ -152,10 +154,11 @@ def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
     # Drop any specified columns
     if cols_to_drop:
         df.drop(columns=cols_to_drop, inplace=True)
+
     # Reorder Columns
     df = df.rename(columns={'item_definition': 'token'})
     # Define the desired core columns in order
-    core_cols = ['item_id', 'l1', 'inventory', 'measure', 'uni_lemma', 'token']
+    core_cols = ['item_id', 'l1', 'inventory', 'measure', 'uni_lemma', 'token', 'synonym']
     # Filter core_cols to only include those present in the main DataFrame
     present_core_cols = [col for col in core_cols if col in df.columns]
     # Get all columns that are NOT the core columns, maintaining their original order
