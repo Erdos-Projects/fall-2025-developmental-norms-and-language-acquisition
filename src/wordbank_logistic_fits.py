@@ -5,6 +5,7 @@ import seaborn as sns
 from scipy.optimize import curve_fit
 import math
 import hashlib
+from typing import List, Tuple, Dict, Any, Union
 
 def sigmoid(age, k, x0):
     """
@@ -20,7 +21,14 @@ def sigmoid(age, k, x0):
     """
     return 1 / (1 + np.exp(-k * (age - x0)))
 
-# --- 2. Helper Functions (Reused from previous steps) ---
+# --- 2. Helper Functions ---
+
+def get_age_columns(df: pd.DataFrame) -> List[Union[int, str]]:
+    """
+    Helper to identify columns representing age/proportion data.
+    Assumes age columns are columns that are either numeric types or whose names are purely digits.
+    """
+    return [col for col in df.columns if isinstance(col, (int, float)) or str(col).isdigit()]
 
 def row_to_df_for_fit(row_data):
     """
@@ -44,7 +52,7 @@ def row_to_df_for_fit(row_data):
     # Detect age columns: prefer column names that are purely numeric (e.g., '8','16',...)
     # This avoids accidentally treating metadata columns like 'inventory' or 'measure'
     # as age columns when melting.
-    age_cols = [c for c in df_row.columns if str(c).isdigit()]
+    age_cols = get_age_columns(df_row)
     if not age_cols:
         # Fallback: exclude common metadata columns if no numeric-named columns are found.
         EXCLUDE_COLS = ['item_id', 'uni_lemma', 'item_definition', 'category', 'inventory', 'measure']
@@ -99,7 +107,7 @@ def calculate_sigmoid_params(df_combined):
 
 # --- Plotting Function ---
 
-def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit):
+def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit, colors=[]):
     """
     Generates a scatter plot of the raw data, overlays the fitted logistic curve,
     and adds median AoA and 50% lines onto the provided Axes (ax) object.
@@ -127,13 +135,15 @@ def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit):
     # Preserve order of first appearance
     label_vals = list(dict.fromkeys(df_data[label_col].dropna().astype(str).tolist()))
 
+    if colors:
+        CUSTOM_COLORS = colors
+    else:
+        # Define custom 3-color palette (Blue, Orange, Purple)
+        CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9e1cd6']
+    
     # Create a stable mapping from label string -> color using a hashed index into
     # a larger palette. This guarantees different label strings map to different
     # colors deterministically.
-    # Define custom 3-color palette (Blue, Orange, Purple)
-    #CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9467bd']
-    CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9e1cd6']
-    
     if len(label_vals) <= len(CUSTOM_COLORS):
         # Use specific colors for 3 or fewer sources
         palette = {
@@ -275,7 +285,7 @@ def compute_curve_fits(dfs, match_col='uni_lemma'):
     return df_curve_fits
 
 
-def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
+def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3), colors=[]):
     """
     Plot the curve fits stored in df_curve_fits produced by compute_curve_fits.
 
@@ -306,7 +316,7 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
         ax = axes[plot_index]
 
         # Plot the curve using the current axis
-        plot_acquisition_curve(ax, word, df_plot_data, k_fit, x0_fit)
+        plot_acquisition_curve(ax, word, df_plot_data, k_fit, x0_fit, colors=colors)
 
         plot_index += 1
 
@@ -319,19 +329,64 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
     plt.tight_layout(rect=[0, 0, 1, 0.98])  # Adjust rect to make space for suptitle
     plt.show()
 
-def compute_and_export_curve_fits(path_to_write, dfs, match_col='uni_lemma'):
+def combine_measures(df_curve_fits_produces: pd.DataFrame, df_curve_fits_understands: pd.DataFrame) -> pd.DataFrame:
+    """
+    Combines two curve-fit DataFrames by merging the growth_rate and median_aoa
+    columns from the 'understands' DataFrame into the 'produces' DataFrame.
+
+    The columns from the 'understands' DataFrame are renamed to '_u' suffixes.
+
+    Args:
+        df_curve_fits_produces: The primary DataFrame (left side of merge).
+        df_curve_fits_understands: The secondary DataFrame (right side of merge, source of new columns).
+
+    Returns:
+        pd.DataFrame: The combined DataFrame with new columns: 
+                      'growth_rate_u' and 'median_aoa_u'.
+    """
+
+    # Rename columns in a copy of the 'produces' DataFrame to include the '_p' suffix.
+    df_produces_renamed = df_curve_fits_produces.copy()
+    df_produces_renamed.rename(columns={
+        'growth_rate': 'growth_rate_p',
+        'median_aoa': 'median_aoa_p'
+    }, inplace=True)
+
+    # Select key column and the two value columns we need.
+    df_understands_subset = df_curve_fits_understands[['uni_lemma', 'growth_rate', 'median_aoa']].copy()
+
+    # Rename the columns to to include the '_u' suffix.
+    df_understands_subset.rename(columns={
+        'growth_rate': 'growth_rate_u',
+        'median_aoa': 'median_aoa_u'
+    }, inplace=True)
+
+    # Use a LEFT MERGE to join the two DataFrames on the 'uni_lemma' column.
+    # 'how=left' ensures all rows from df_curve_fits_produces are kept.
+    df_curve_fits = df_curve_fits_produces.merge(
+        df_understands_subset,
+        on='uni_lemma',  # The common column used for matching
+        how='left'       # Keep all rows from the left DF (produces)
+    )
+    return df_curve_fits
+
+def compute_and_export_curve_fits(path_to_write, dfs_p, dfs_u, match_col='uni_lemma'):
     """
     Computes logistic curve fits and exports the results to a CSV file.
 
     Args:
         path_to_write (str): The file path where the resulting CSV will be saved.
-        dfs (list[pd.DataFrame]): List of DataFrames passed to compute_curve_fits.
+        dfs_p (list[pd.DataFrame]): List of DataFrames passed to compute_curve_fits whose measure is Produces.
+        dfs_u (list[pd.DataFrame]): List of DataFrames passed to compute_curve_fits whose measure is Understands.
         match_col (str): The column used to match items across the input DataFrames (default 'uni_lemma').
 
     Returns:
         str: A message confirming the file was written, including the file path.
     """
-    df_curve_fits = compute_curve_fits(dfs, match_col=match_col)
-    df_for_export = df_curve_fits.drop(columns=['__plot_data__'])
+    df_curve_fits_p = compute_curve_fits(dfs_p, match_col=match_col)
+    df_curve_fits_u = compute_curve_fits(dfs_u, match_col=match_col)
+    df_curve_fits_p.drop(columns=['__plot_data__'])
+    df_curve_fits_u.drop(columns=['__plot_data__'])
+    df_curve_fits = combine_measures(df_curve_fits_p, df_curve_fits_u)
     df_for_export.to_csv(path_to_write, index=False)
     return f"Curve fits written to {path_to_write}"
