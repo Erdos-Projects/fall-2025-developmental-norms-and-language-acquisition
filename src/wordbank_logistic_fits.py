@@ -356,6 +356,7 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3), colors=[]):
     df_curve_fits must contain columns: 'uni_lemma', 'token', 'growth_rate', 'median_aoa', '__plot_data__'.
     """
     valid_fits = df_curve_fits[~pd.isna(df_curve_fits['growth_rate'])]
+    valid_fits = valid_fits.sort_values(by='token') # sort so plots are alphabetically ordered
     num_plots = len(valid_fits)
     COLS = cols
     ROWS = math.ceil(num_plots / COLS)
