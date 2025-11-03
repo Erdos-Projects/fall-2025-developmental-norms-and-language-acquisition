@@ -372,7 +372,7 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3), colors=[]):
 
     plot_index = 0
     for index, row in valid_fits.iterrows():
-        word = row['token'] # title of plot is token
+        word = row['token_clean'] # title of plot is token_clean
         k_fit = row['growth_rate']
         x0_fit = row['median_aoa']
         df_plot_data = row['__plot_data__']
@@ -435,7 +435,7 @@ def combine_measures(df_curve_fits_produces: pd.DataFrame, df_curve_fits_underst
     )
     return df_curve_fits
 
-def compute_and_export_curve_fits(path_to_write, dfs_p, dfs_u, match_col='uni_lemma'):
+def compute_and_export_curve_fits(path_to_write, dfs_p, dfs_u, match_cols=['uni_lemma', 'token_clean']):
     """
     Computes logistic curve fits and exports the results to a CSV file.
 
@@ -448,8 +448,8 @@ def compute_and_export_curve_fits(path_to_write, dfs_p, dfs_u, match_col='uni_le
     Returns:
         str: A message confirming the file was written, including the file path.
     """
-    df_curve_fits_p = compute_curve_fits(dfs_p, match_col=match_col)
-    df_curve_fits_u = compute_curve_fits(dfs_u, match_col=match_col)
+    df_curve_fits_p, df_ambiguous_p = compute_curve_fits(dfs_p, match_cols=match_cols)
+    df_curve_fits_u, df_ambiguous_u = compute_curve_fits(dfs_u, match_cols=match_cols)
     df_curve_fits_p.drop(columns=['__plot_data__'], inplace=True)
     df_curve_fits_u.drop(columns=['__plot_data__'], inplace=True)
     df_curve_fits = combine_measures(df_curve_fits_p, df_curve_fits_u)

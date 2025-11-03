@@ -273,6 +273,10 @@ def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
     '''
     # Read in the Wordbank word data
     df = pd.read_csv(path_to_wordbank_data)
+    # Read in the uni_lemma mapping data
+    uni_lemmas = pd.read_csv(path_to_uni_lemma_data)
+    # Add the uni_lemma column to the main dataframe and reorder columns
+    df = add_lemma_data(df, uni_lemmas)
     # Rename
     df = df.rename(columns={'item_definition': 'token'})
     # Create token_clean column
@@ -283,10 +287,6 @@ def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
     df['l1'] = lang
     df['inventory'] = inventory
     df['measure'] = measure
-    # Read in the uni_lemma mapping data
-    uni_lemmas = pd.read_csv(path_to_uni_lemma_data)
-    # Add the uni_lemma column to the main dataframe and reorder columns
-    df = add_lemma_data(df, uni_lemmas)
     # Mark which rows have non-unique uni_lemmas
     df['synonym'] = df.duplicated(subset=['uni_lemma'], keep=False)
     # Split any rows as specified
