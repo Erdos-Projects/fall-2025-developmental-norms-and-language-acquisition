@@ -55,7 +55,7 @@ def row_to_df_for_fit(row_data):
     age_cols = get_age_columns(df_row)
     if not age_cols:
         # Fallback: exclude common metadata columns if no numeric-named columns are found.
-        EXCLUDE_COLS = ['item_id', 'uni_lemma', 'item_definition', 'category', 'inventory', 'measure']
+        EXCLUDE_COLS = ['item_id', 'uni_lemma', 'token', 'token_clean', 'category', 'inventory', 'measure']
         age_cols = [c for c in df_row.columns if c not in EXCLUDE_COLS]
 
     proportions_wide = df_row[age_cols]
@@ -222,14 +222,14 @@ def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit, colors=[]):
         ax.get_legend().remove()
 
 
-def compute_curve_fits(dfs, match_cols=['uni_lemma', 'token']):
+def compute_curve_fits(dfs, match_cols=['uni_lemma', 'token_clean']):
     """
     Compute sigmoid fits for every row in the primary DataFrame (dfs[0]) and combine
     matching rows from other DataFrames in the list `dfs` using `match_col`.
 
     This function identifies and returns a separate DataFrame for primary rows that 
     were fitted using only their own data and are 'ambiguous'—meaning the uni_lemma 
-    was present in an auxiliary data frame but the token did not strictly match (uni_lemma, token).
+    was present in an auxiliary data frame but the token did not strictly match (uni_lemma, token_clean).
 
     Args:
         dfs (list[pd.DataFrame]): list of DataFrames where dfs[0] is the primary (base) DF.
@@ -322,7 +322,7 @@ def compute_curve_fits(dfs, match_cols=['uni_lemma', 'token']):
     results = primary.apply(combined_logistic_regression, axis=1)
 
     # Determine all columns needed for the results DataFrame
-    cols_to_keep = list(set(match_keys + ['token', 'l1', 'category']))
+    cols_to_keep = list(set(match_keys + ['token', 'token_clean', 'l1', 'category']))
     
     # Build the results DataFrame
     df_curve_fits = primary[cols_to_keep].copy()
@@ -353,10 +353,10 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3), colors=[]):
     """
     Plot the curve fits stored in df_curve_fits produced by compute_curve_fits.
 
-    df_curve_fits must contain columns: 'uni_lemma', 'token', 'growth_rate', 'median_aoa', '__plot_data__'.
+    df_curve_fits must contain columns: 'uni_lemma', 'token', 'token_clean', 'growth_rate', 'median_aoa', '__plot_data__'.
     """
     valid_fits = df_curve_fits[~pd.isna(df_curve_fits['growth_rate'])]
-    valid_fits = valid_fits.sort_values(by='token') # sort so plots are alphabetically ordered
+    valid_fits = valid_fits.sort_values(by='token_clean') # sort so plots are alphabetically ordered
     num_plots = len(valid_fits)
     COLS = cols
     ROWS = math.ceil(num_plots / COLS)
