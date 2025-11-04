@@ -72,7 +72,7 @@ def row_to_df_for_fit(row_data):
     row_df = row_df.sort_values(by='Age')
     
     # Preserve 'inventory' and 'measure' (and other metadata)
-    METADATA_COLS = ['inventory', 'measure', 'uni_lemma'] 
+    METADATA_COLS = ['inventory', 'measure', 'uni_lemma', 'token', 'token_clean'] 
     for meta_col in METADATA_COLS:
         if meta_col in df_row.columns and meta_col not in row_df.columns:
             meta_val = df_row.iloc[0].get(meta_col)

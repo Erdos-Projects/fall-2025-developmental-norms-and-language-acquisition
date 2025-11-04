@@ -260,6 +260,10 @@ def read_and_clean_wordbank_data(path_to_wordbank_data, path_to_uni_lemma_data,
         inventory (str): The inventory type ('WG' for Words & Gestures or 'WS' for 
             Words & Sentences).
         measure (str): The specific measure used ('produces', 'understands', etc.).
+        autosplit: Boolean specifying whether to automatically split rows in which 'token'
+            contains '/' or '(se)'
+        autosplit_exceptions: a list of strings to specify rows to avoid autosplitting.
+            The string is passed to the 'uni_lemma' field.
         items_to_split (list of dict, optional): List of dictionaries defining rows 
             to split. Each dict must contain keys: 'old_token', 
             'new_tokens' (tuple), and 'new_lemmas' (tuple). Defaults to None.
