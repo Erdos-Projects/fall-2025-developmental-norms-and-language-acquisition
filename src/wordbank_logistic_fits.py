@@ -5,6 +5,7 @@ import seaborn as sns
 from scipy.optimize import curve_fit
 import math
 import hashlib
+from typing import List, Tuple, Dict, Any, Union
 
 def sigmoid(age, k, x0):
     """
@@ -20,7 +21,14 @@ def sigmoid(age, k, x0):
     """
     return 1 / (1 + np.exp(-k * (age - x0)))
 
-# --- 2. Helper Functions (Reused from previous steps) ---
+# --- 2. Helper Functions ---
+
+def get_age_columns(df: pd.DataFrame) -> List[Union[int, str]]:
+    """
+    Helper to identify columns representing age/proportion data.
+    Assumes age columns are columns that are either numeric types or whose names are purely digits.
+    """
+    return [col for col in df.columns if isinstance(col, (int, float)) or str(col).isdigit()]
 
 def row_to_df_for_fit(row_data):
     """
@@ -44,10 +52,10 @@ def row_to_df_for_fit(row_data):
     # Detect age columns: prefer column names that are purely numeric (e.g., '8','16',...)
     # This avoids accidentally treating metadata columns like 'inventory' or 'measure'
     # as age columns when melting.
-    age_cols = [c for c in df_row.columns if str(c).isdigit()]
+    age_cols = get_age_columns(df_row)
     if not age_cols:
         # Fallback: exclude common metadata columns if no numeric-named columns are found.
-        EXCLUDE_COLS = ['item_id', 'uni_lemma', 'item_definition', 'category', 'inventory', 'measure']
+        EXCLUDE_COLS = ['item_id', 'uni_lemma', 'token', 'token_clean', 'category', 'inventory', 'measure']
         age_cols = [c for c in df_row.columns if c not in EXCLUDE_COLS]
 
     proportions_wide = df_row[age_cols]
@@ -64,7 +72,7 @@ def row_to_df_for_fit(row_data):
     row_df = row_df.sort_values(by='Age')
     
     # Preserve 'inventory' and 'measure' (and other metadata)
-    METADATA_COLS = ['inventory', 'measure', 'uni_lemma'] 
+    METADATA_COLS = ['inventory', 'measure', 'uni_lemma', 'token', 'token_clean'] 
     for meta_col in METADATA_COLS:
         if meta_col in df_row.columns and meta_col not in row_df.columns:
             meta_val = df_row.iloc[0].get(meta_col)
@@ -99,7 +107,7 @@ def calculate_sigmoid_params(df_combined):
 
 # --- Plotting Function ---
 
-def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit):
+def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit, colors=[]):
     """
     Generates a scatter plot of the raw data, overlays the fitted logistic curve,
     and adds median AoA and 50% lines onto the provided Axes (ax) object.
@@ -127,13 +135,15 @@ def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit):
     # Preserve order of first appearance
     label_vals = list(dict.fromkeys(df_data[label_col].dropna().astype(str).tolist()))
 
+    if colors:
+        CUSTOM_COLORS = colors
+    else:
+        # Define custom 3-color palette (Blue, Orange, Purple)
+        CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9e1cd6']
+    
     # Create a stable mapping from label string -> color using a hashed index into
     # a larger palette. This guarantees different label strings map to different
     # colors deterministically.
-    # Define custom 3-color palette (Blue, Orange, Purple)
-    #CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9467bd']
-    CUSTOM_COLORS = ['#0000FF', '#FFA500', '#9e1cd6']
-    
     if len(label_vals) <= len(CUSTOM_COLORS):
         # Use specific colors for 3 or fewer sources
         palette = {
@@ -212,17 +222,23 @@ def plot_acquisition_curve(ax, word, df_data, k_fit, x0_fit):
         ax.get_legend().remove()
 
 
-def compute_curve_fits(dfs, match_col='uni_lemma'):
+def compute_curve_fits(dfs, match_cols=['uni_lemma', 'token_clean']):
     """
     Compute sigmoid fits for every row in the primary DataFrame (dfs[0]) and combine
     matching rows from other DataFrames in the list `dfs` using `match_col`.
+
+    This function identifies and returns a separate DataFrame for primary rows that 
+    were fitted using only their own data and are 'ambiguous'—meaning the uni_lemma 
+    was present in an auxiliary data frame but the token did not strictly match (uni_lemma, token_clean).
 
     Args:
         dfs (list[pd.DataFrame]): list of DataFrames where dfs[0] is the primary (base) DF.
         match_col (str): column name used to match rows across DataFrames (default 'uni_lemma').
 
     Returns:
-        pd.DataFrame: columns [match_col, 'growth_rate', 'median_aoa', '__plot_data__']
+        Tuple[pd.DataFrame, pd.DataFrame]: 
+            - The main fitted DataFrame (df_curve_fits).
+            - A DataFrame of primary rows that are considered 'ambiguous'.
     """
     if not isinstance(dfs, (list, tuple)) or len(dfs) == 0:
         raise ValueError('dfs must be a non-empty list of DataFrames')
@@ -230,58 +246,117 @@ def compute_curve_fits(dfs, match_col='uni_lemma'):
     primary = dfs[0]
     others = dfs[1:]
 
-    # Build lookup dicts for each other DF mapping match value -> row series
+    # Convert match_cols to a list of keys for consistent handling
+    if isinstance(match_cols, str):
+        match_keys = [match_cols]
+    elif isinstance(match_cols, (list, tuple)):
+        match_keys = list(match_cols)
+    else:
+        raise TypeError("match_cols must be a string or a list/tuple of strings.")
+
+    # Build lookup dicts for each other DF mapping match value -> row series (STRICT MATCH)
     other_dicts = []
+    # Build sets of all uni_lemmas present in each auxiliary DF (AMBIGUITY CHECK)
+    uni_lemma_sets = [] 
     for odf in others:
-        if match_col not in odf.columns:
-            other_dicts.append({})
+        # 1. Strict Match Dict (for combining data)
+        if all(col in odf.columns for col in match_keys):
+            odf_indexed = odf.set_index(match_keys)
+            other_dicts.append(odf_indexed.T.to_dict('series'))
         else:
-            other_dicts.append(odf.set_index(match_col).T.to_dict('series'))
+            other_dicts.append({})
+        # 2. Uni_Lemma Set (for ambiguity check)
+        uni_lemma_sets.append(set(odf['uni_lemma'].unique()))
 
     # Nested function used by apply()
     def combined_logistic_regression(primary_row):
-        match_val = primary_row.get(match_col)
+        # Extract the key value(s) from the primary row to use for strict lookup
+        if len(match_keys) == 1:
+            match_val = primary_row.get(match_keys[0])
+        else:
+            # For a multi-index, the key is a tuple of values
+            match_val = tuple(primary_row.get(k) for k in match_keys)
+            
         row_primary_long = row_to_df_for_fit(primary_row)
 
-        # Collect matching rows from other sources; rely on each input DF's
-        # existing 'inventory' column instead of creating synthetic tags.
+        # Collect matching rows from other sources (STRICT MATCH: uni_lemma + token)
         combined_parts = [row_primary_long]
+        strict_match_found = False
         for odict in other_dicts:
             if match_val in odict:
                 other_series = odict[match_val]
                 other_long = row_to_df_for_fit(other_series)
                 combined_parts.append(other_long)
+                strict_match_found = True # At least one strict match was found
+        
+        # Flag if the fit was performed only with the primary row's data
+        only_self_fit = not strict_match_found
 
+        # --- AMBIGUOUS LOGIC ---
+        ambiguous_fit = False
+        # Only check for ambiguity if no strict match was found
+        if only_self_fit:
+            primary_uni_lemma = primary_row.get('uni_lemma')
+            
+            # Check for uni_lemma presence in any of the auxiliary sets
+            # An item is AMBIGUOUS if:
+            # 1. No strict (uni_lemma + token) match was found (only_self_fit is True)
+            # 2. BUT, the uni_lemma *was* found in an auxiliary DF
+            uni_lemma_match_found = any(primary_uni_lemma in ul_set for ul_set in uni_lemma_sets)
+            
+            if uni_lemma_match_found:
+                ambiguous_fit = True
+        
         row_df_combined = pd.concat(combined_parts, ignore_index=True)
 
         # Fit the curve
         fit_params = calculate_sigmoid_params(row_df_combined)
 
-        # Attach plot data
+        # Attach plot data and status flag
         fit_params['__plot_data__'] = row_df_combined
+        fit_params['__is_ambiguous__'] = ambiguous_fit # New flag for internal tracking
+        # We don't need __only_self_fit__ anymore, only the final ambiguity status
         return fit_params
 
     # Run the fit across primary rows
     results = primary.apply(combined_logistic_regression, axis=1)
 
-    # Build the results DataFrame keyed by the matching column
-    df_curve_fits = primary[[match_col]].copy()
-    for col in ['token', 'l1', 'category']:
-        df_curve_fits[col] = primary[col]
+    # Determine all columns needed for the results DataFrame
+    cols_to_keep = list(set(match_keys + ['token', 'token_clean', 'l1', 'category']))
+    
+    # Build the results DataFrame
+    df_curve_fits = primary[cols_to_keep].copy()
+    
+    # Add fit results and internal flag
     df_curve_fits['growth_rate'] = results['growth_rate']
     df_curve_fits['median_aoa'] = results['median_aoa']
     df_curve_fits['__plot_data__'] = results['__plot_data__']
+    df_curve_fits['__is_ambiguous__'] = results['__is_ambiguous__']
+    
+    # 5. Identify and create the ambiguous rows DataFrame
+    df_ambiguous = df_curve_fits[df_curve_fits['__is_ambiguous__']].copy()
 
-    return df_curve_fits
+    # 6. Printing about ambiguous rows
+    if not df_ambiguous.empty:
+        print(f"\n--- Warning: {len(df_ambiguous)} primary rows were fitted using only their own data but had uni_lemma matches in auxiliary DFs. ---")
+        print(df_ambiguous[match_keys + ['growth_rate', 'median_aoa']].to_string(index=True))
+        print("------------------------------------------------------------------------------------------------")
+
+    # 7. Clean up the flag column before return (it's for internal use/logging)
+    df_curve_fits.drop(columns=['__is_ambiguous__'], inplace=True)
+    df_ambiguous.drop(columns=['__is_ambiguous__'], inplace=True, errors='ignore')
+
+    return df_curve_fits, df_ambiguous
 
 
-def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
+def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3), colors=[]):
     """
     Plot the curve fits stored in df_curve_fits produced by compute_curve_fits.
 
-    df_curve_fits must contain columns: 'uni_lemma', 'token', 'growth_rate', 'median_aoa', '__plot_data__'.
+    df_curve_fits must contain columns: 'uni_lemma', 'token', 'token_clean', 'growth_rate', 'median_aoa', '__plot_data__'.
     """
     valid_fits = df_curve_fits[~pd.isna(df_curve_fits['growth_rate'])]
+    valid_fits = valid_fits.sort_values(by='token_clean') # sort so plots are alphabetically ordered
     num_plots = len(valid_fits)
     COLS = cols
     ROWS = math.ceil(num_plots / COLS)
@@ -297,7 +372,7 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
 
     plot_index = 0
     for index, row in valid_fits.iterrows():
-        word = row['token'] # title of plot is token
+        word = row['token_clean'] # title of plot is token_clean
         k_fit = row['growth_rate']
         x0_fit = row['median_aoa']
         df_plot_data = row['__plot_data__']
@@ -306,7 +381,7 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
         ax = axes[plot_index]
 
         # Plot the curve using the current axis
-        plot_acquisition_curve(ax, word, df_plot_data, k_fit, x0_fit)
+        plot_acquisition_curve(ax, word, df_plot_data, k_fit, x0_fit, colors=colors)
 
         plot_index += 1
 
@@ -319,19 +394,64 @@ def plot_curve_fits(df_curve_fits, cols=6, figsize_scale=(3.5, 3)):
     plt.tight_layout(rect=[0, 0, 1, 0.98])  # Adjust rect to make space for suptitle
     plt.show()
 
-def compute_and_export_curve_fits(path_to_write, dfs, match_col='uni_lemma'):
+def combine_measures(df_curve_fits_produces: pd.DataFrame, df_curve_fits_understands: pd.DataFrame) -> pd.DataFrame:
+    """
+    Combines two curve-fit DataFrames by merging the growth_rate and median_aoa
+    columns from the 'understands' DataFrame into the 'produces' DataFrame.
+
+    The columns from the 'understands' DataFrame are renamed to '_u' suffixes.
+
+    Args:
+        df_curve_fits_produces: The primary DataFrame (left side of merge).
+        df_curve_fits_understands: The secondary DataFrame (right side of merge, source of new columns).
+
+    Returns:
+        pd.DataFrame: The combined DataFrame with new columns: 
+                      'growth_rate_u' and 'median_aoa_u'.
+    """
+
+    # Rename columns in a copy of the 'produces' DataFrame to include the '_p' suffix.
+    df_produces_renamed = df_curve_fits_produces.copy()
+    df_produces_renamed.rename(columns={
+        'growth_rate': 'growth_rate_p',
+        'median_aoa': 'median_aoa_p'
+    }, inplace=True)
+
+    # Select key column and the two value columns we need.
+    df_understands_subset = df_curve_fits_understands[['uni_lemma', 'growth_rate', 'median_aoa']].copy()
+
+    # Rename the columns to to include the '_u' suffix.
+    df_understands_subset.rename(columns={
+        'growth_rate': 'growth_rate_u',
+        'median_aoa': 'median_aoa_u'
+    }, inplace=True)
+
+    # Use a LEFT MERGE to join the two DataFrames on the 'uni_lemma' column.
+    # 'how=left' ensures all rows from df_curve_fits_produces are kept.
+    df_curve_fits = df_produces_renamed.merge(
+        df_understands_subset,
+        on='uni_lemma',  # The common column used for matching
+        how='left'       # Keep all rows from the left DF (produces)
+    )
+    return df_curve_fits
+
+def compute_and_export_curve_fits(path_to_write, dfs_p, dfs_u, match_cols=['uni_lemma', 'token_clean']):
     """
     Computes logistic curve fits and exports the results to a CSV file.
 
     Args:
         path_to_write (str): The file path where the resulting CSV will be saved.
-        dfs (list[pd.DataFrame]): List of DataFrames passed to compute_curve_fits.
+        dfs_p (list[pd.DataFrame]): List of DataFrames passed to compute_curve_fits whose measure is Produces.
+        dfs_u (list[pd.DataFrame]): List of DataFrames passed to compute_curve_fits whose measure is Understands.
         match_col (str): The column used to match items across the input DataFrames (default 'uni_lemma').
 
     Returns:
         str: A message confirming the file was written, including the file path.
     """
-    df_curve_fits = compute_curve_fits(dfs, match_col=match_col)
-    df_for_export = df_curve_fits.drop(columns=['__plot_data__'])
-    df_for_export.to_csv(path_to_write, index=False)
+    df_curve_fits_p, df_ambiguous_p = compute_curve_fits(dfs_p, match_cols=match_cols)
+    df_curve_fits_u, df_ambiguous_u = compute_curve_fits(dfs_u, match_cols=match_cols)
+    df_curve_fits_p.drop(columns=['__plot_data__'], inplace=True)
+    df_curve_fits_u.drop(columns=['__plot_data__'], inplace=True)
+    df_curve_fits = combine_measures(df_curve_fits_p, df_curve_fits_u)
+    df_curve_fits.to_csv(path_to_write, index=False)
     return f"Curve fits written to {path_to_write}"
