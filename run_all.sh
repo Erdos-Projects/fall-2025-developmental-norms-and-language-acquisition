@@ -2,7 +2,6 @@ python "src/data/process_slam.py"
 python "src/data/process_tokens.py"
 python "src/data/process_add_features.py"
 python "src/data/add_metadata.py"
-python "src/load_wordbank_data.py"
 python "src/make_wordbank_fits_en.py"
 python "src/make_wordbank_fits_es.py"
-python "src/wordbank_logistic_fits.py"
+
