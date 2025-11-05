@@ -1,7 +1,10 @@
+python "src/make_wordbank_fits_en.py"
+python "src/make_wordbank_fits_es.py"
 python "src/data/process_slam.py"
 python "src/data/process_tokens.py"
 python "src/data/process_add_features.py"
 python "src/data/add_metadata.py"
-python "src/make_wordbank_fits_en.py"
-python "src/make_wordbank_fits_es.py"
-
+python "src/edit_distance.py"
+python "src/inference_analysis2.py"
+python "src/LG_model.py"
+python "src/HGB_model.py"
