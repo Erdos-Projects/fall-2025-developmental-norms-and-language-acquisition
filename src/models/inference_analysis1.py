@@ -15,10 +15,10 @@ sns.set_theme()
 
 # ----------------------- CONFIG -----------------------
 PARQUET_PATH = "data/processed/complete_data/train_subset_l1-en_l2-es_plus.parquet"
-# CSV_PATH     = args.csv
-# SAMPLE_ATTEMPTS = args.sample
-# SAVE_DIR     = args.save_dir
-# os.makedirs(SAVE_DIR, exist_ok=True)
+CSV_PATH     = args.csv
+SAMPLE_ATTEMPTS = args.sample
+SAVE_DIR     = args.save_dir
+os.makedirs(SAVE_DIR, exist_ok=True)
 
 # %%
 # ===================== LOAD =====================
