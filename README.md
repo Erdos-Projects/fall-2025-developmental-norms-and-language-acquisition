@@ -17,3 +17,10 @@ Do words acquired later in first-language development (L1) show higher error rat
 -	Aggregates data from the [MacArthur–Bates Communicative Development Inventories](https://mb-cdi.stanford.edu/) (CDIs).
 -   Potential features: Age of Acquistion (AoA),category (noun, verb, semantic field), production/comprehension probabilities.
 -   Publicly available at [wordbank.stanford.edu](https://wordbank.stanford.edu).
+
+## Instructions:
+Download the SLAM dataset from Dataverse, and the WordBank data.
+
+Save these files to data/raw/data_en_es, data/raw/data_es_en, data/raw/data_fr_en and data/raw/Wordbank.
+
+Run run_all.sh
