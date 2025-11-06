@@ -30,4 +30,4 @@ dfs_U = [df_WG_U]
 df_curve_fits_understands, df_ambiguous_understands = compute_curve_fits(dfs_U)
 
 # export data to csv
-compute_and_export_curve_fits('wordbank_en_logistic_fits.csv', [df_WS, df_WG], [df_WG_U])
+compute_and_export_curve_fits('data/processed/wordbank_en_logistic_fits.csv', [df_WS, df_WG], [df_WG_U])
