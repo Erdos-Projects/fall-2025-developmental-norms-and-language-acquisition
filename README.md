@@ -10,17 +10,24 @@ Do words acquired later in first-language development (L1) show higher error rat
 -	Large corpus of data from over 6,000 Duolingo users, collected during their first 30 days of learning a language
 -	Released in 2018 as part of the [Duolingo Shared Task on Second Language Acquisition Modeling (SLAM)](https://sharedtask.duolingo.com/2018.html).
 -	Potential features to use: practice history, time since last exposure, item difficulty, etc.
--   Publicly available via [Harvard Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/8SWHNO) or linked from Duolingo Research.
+- Publicly available via [Harvard Dataverse](https://doi.org/10.7910/DVN/8SWHNO) or linked from Duolingo Research.
 
 ### WordBank Dataset:
 -	Open database of children’s vocabulary growth.
 -	Aggregates data from the [MacArthur–Bates Communicative Development Inventories](https://mb-cdi.stanford.edu/) (CDIs).
--   Potential features: Age of Acquistion (AoA),category (noun, verb, semantic field), production/comprehension probabilities.
--   Publicly available at [wordbank.stanford.edu](https://wordbank.stanford.edu).
+- Potential features: Age of Acquistion (AoA),category (noun, verb, semantic field), production/comprehension probabilities.
+- Publicly available at [wordbank.stanford.edu](https://wordbank.stanford.edu).
 
 ## Instructions:
-Download the SLAM dataset from Dataverse, and the WordBank data.
-
-Save these files to data/raw/data_en_es, data/raw/data_es_en, data/raw/data_fr_en and data/raw/Wordbank.
-
-Run run_all.sh
+1. Create & activate the environment:
+  ```
+  conda env create -f environment.yml
+  conda activate lingpredict   # or the name defined in environment.yml
+  ```
+2. Download the [SLAM dataset from Dataverse](https://doi.org/10.7910/DVN/8SWHNO). (Their license precludes us from adding these files to the repository.) Save these files to `data/raw/data_en_es`, `data/raw/data_es_en`, and `data/raw/data_fr_en`:
+  ```
+  mkdir -p data/raw/data_en_es \
+         data/raw/data_es_en \
+         data/raw/data_fr_en
+  ```
+3.	Run `run_all.sh`.
