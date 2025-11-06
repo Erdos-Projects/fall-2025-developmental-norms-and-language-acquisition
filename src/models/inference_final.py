@@ -15,13 +15,14 @@ import statsmodels.formula.api as smf
 sns.set_theme()
 
 # ----------------------- CONFIG -----------------------
-PARQUET_PATH = "data/processed/train_slam_with_features2.parquet"   # <- set if running as a cell
+#PARQUET_PATH = "data/processed/train_slam_with_features2.parquet"   # <- set if running as a cell
+PARQUET_PATH = "data/processed/train_slam_with_features.parquet"   # <- set if running as a cell
 CSV_PATH     = None                        # optional fallback
 SAVE_DIR     = "figs"
 SAMPLE_ATTEMPTS = 20000    # for attempt-level pairplot speed
 MIN_ATTEMPTS_PER_WORD = 100
 TOP_K_POS = 8
-INCLUDE_GROWTH = True      # set False to drop growth_rate from GLM
+INCLUDE_GROWTH = True      # set False to drop growth_rate_p from GLM
 
 os.makedirs(SAVE_DIR, exist_ok=True)
 
@@ -51,7 +52,7 @@ print("[info] columns:", list(df.columns))
 if "token_wrong" in df.columns:
     df["token_wrong"] = df["token_wrong"].astype(int)
 
-for col in ["median_aoa","growth_rate","days","time"]:
+for col in ["median_aoa_p","growth_rate_p","days","time"]:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -75,13 +76,13 @@ if has_pos:
     agg = agg.merge(pos_mode, on=KEY_WORD, how="left")
 
 # Attach AoA / growth from the same file (first non-null per word)
-for c in ["median_aoa","growth_rate"]:
+for c in ["median_aoa_p","growth_rate_p"]:
     if c in df.columns:
         tmp = df[[KEY_WORD, c]].dropna().drop_duplicates(subset=[KEY_WORD])
         agg = agg.merge(tmp, on=KEY_WORD, how="left")
 
 # Filter for stability
-agg = agg[(agg["n"] >= MIN_ATTEMPTS_PER_WORD) & (agg["median_aoa"].notna())].copy()
+agg = agg[(agg["n"] >= MIN_ATTEMPTS_PER_WORD) & (agg["median_aoa_p"].notna())].copy()
 agg["err_rate"] = agg["errors"]/agg["n"]
 print(f"[info] word-level rows after filter: {len(agg)}")
 
@@ -98,10 +99,10 @@ def corr_report(x, y, label="Overall"):
     r,   p_r   = pearsonr(m["x"], m["y"])
     print(f"{label:>12} | Spearman ρ={rho:.3f} (p={p_rho:.2e}) | Pearson r={r:.3f} (p={p_r:.2e})")
 
-corr_report(agg["median_aoa"], agg["error_rate"], "Overall (word-level)")
+corr_report(agg["median_aoa_p"], agg["error_rate"], "Overall (word-level)")
 
 # Correlation heatmap (numeric only)
-num_cols = [c for c in ["median_aoa","growth_rate","n","err_rate"] if c in agg.columns]
+num_cols = [c for c in ["median_aoa_p","growth_rate_p","n","err_rate"] if c in agg.columns]
 if len(num_cols) >= 2:
     corr = agg[num_cols].corr(method="spearman")
     plt.figure(figsize=(4.5,4))
@@ -115,10 +116,10 @@ if len(num_cols) >= 2:
 # %%
 # ---------------- AoA vs ERROR SCATTER ----------------
 plt.figure(figsize=(6.6,5))
-ax = sns.regplot(data=agg, x="median_aoa", y="error_rate", lowess=True, scatter=False)
-plt.scatter(agg["median_aoa"], agg["error_rate"],
+ax = sns.regplot(data=agg, x="median_aoa_p", y="error_rate", lowess=True, scatter=False)
+plt.scatter(agg["median_aoa_p"], agg["error_rate"],
             s=np.clip(agg["n"]/5, 10, 150), alpha=0.45, edgecolor="none")
-plt.xlabel("Age of Acquisition (median_aoa)")
+plt.xlabel("Age of Acquisition (median_aoa_p)")
 plt.ylabel("Error rate (per word)")
 plt.title(f"AoA vs Error Rate (size ∝ attempts, n≥{MIN_ATTEMPTS_PER_WORD})")
 plt.tight_layout()
@@ -137,15 +138,15 @@ if "token_pos_mode" in agg.columns:
     for pos in top_pos:
         g = sub[sub["token_pos_mode"] == pos]
         if len(g) >= 8:
-            corr_report(g["median_aoa"], g["error_rate"], pos)
+            corr_report(g["median_aoa_p"], g["error_rate"], pos)
 
     g = sns.lmplot(
-        data=sub, x="median_aoa", y="error_rate",
+        data=sub, x="median_aoa_p", y="error_rate",
         hue="token_pos_mode", col="token_pos_mode", col_wrap=4,
         scatter_kws=dict(s=20, alpha=0.5),
         line_kws=dict(), lowess=True, height=3, aspect=1.05, legend=False
     )
-    g.set_axis_labels("Age of Acquisition (median_aoa)", "Error rate")
+    g.set_axis_labels("Age of Acquisition (median_aoa_p)", "Error rate")
     g.fig.subplots_adjust(top=0.9)
     g.fig.suptitle("AoA vs Error by POS (LOWESS)")
     g.savefig(os.path.join(SAVE_DIR, "aoa_vs_error_by_pos.png"), dpi=160)
@@ -154,18 +155,16 @@ if "token_pos_mode" in agg.columns:
 
 # %%
 # ------ WEIGHTED BINOMIAL GLM (word-level counts) -----
-formula = "err_rate ~ median_aoa"
-if INCLUDE_GROWTH and "growth_rate" in agg.columns and agg["growth_rate"].notna().any():
-    formula += " + growth_rate"
+formula = "err_rate ~ median_aoa_p"
+if INCLUDE_GROWTH and "growth_rate_p" in agg.columns and agg["growth_rate_p"].notna().any():
+    formula += " + growth_rate_p"
 if "token_pos_mode" in agg.columns:
     formula += " + C(token_pos_mode)"
 
-glm_data = agg.dropna(subset=["median_aoa", "err_rate", "n"]).copy()
+glm_data = agg.dropna(subset=["median_aoa_p", "err_rate", "n"]).copy()
 glm_data = glm_data[glm_data["n"] > 0]
 m = smf.glm(formula, data=glm_data, family=sm.families.Binomial(),
             freq_weights=glm_data["n"]).fit()
 print("\n[GLM] Weighted binomial on word counts")
 print("Formula:", formula)
 print(m.summary())
-
-
