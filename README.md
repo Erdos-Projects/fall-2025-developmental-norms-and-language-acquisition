@@ -10,7 +10,7 @@ Do words acquired later in first-language development (L1) show higher error rat
 -	Large corpus of data from over 6,000 Duolingo users, collected during their first 30 days of learning a language
 -	Released in 2018 as part of the [Duolingo Shared Task on Second Language Acquisition Modeling (SLAM)](https://sharedtask.duolingo.com/2018.html).
 -	Potential features to use: practice history, time since last exposure, item difficulty, etc.
-- Publicly available via [Harvard Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/8SWHNO) or linked from Duolingo Research.
+- Publicly available via [Harvard Dataverse](https://doi.org/10.7910/DVN/8SWHNO) or linked from Duolingo Research.
 
 ### WordBank Dataset:
 -	Open database of children’s vocabulary growth.
@@ -20,17 +20,18 @@ Do words acquired later in first-language development (L1) show higher error rat
 
 ## Instructions:
 - Create & activate the environment
-  
+  ```
   conda env create -f environment.yml
-  conda activate slam-env   # or the name defined in environment.yml
+  conda activate lingpredict   # or the name defined in environment.yml
+  ```
 
--	Download the SLAM dataset from Dataverse. 
+-	Download the [SLAM dataset from Dataverse](https://doi.org/10.7910/DVN/8SWHNO). (Their license precludes us from adding these files in the repository.)
 -	Save these files to data/raw/data_en_es, data/raw/data_es_en, data/raw/data_fr_en and data/raw/Wordbank:
-
+  ```
   mkdir -p data/raw/data_en_es \
          data/raw/data_es_en \
          data/raw/data_fr_en \
          data/raw/Wordbank
-
+  ```
 -	Run run_all.sh
 
