@@ -1,0 +1,30 @@
+{
+  "saved_at_utc": "2025-11-06T02:10:03Z",
+  "model_type": "sklearn Pipeline (preprocessing + classifier)",
+  "which_run": "enhanced",
+  "framework": {
+    "sklearn": "1.7.2",
+    "numpy": "2.2.6",
+    "pandas": "2.3.3"
+  },
+  "python": "3.10.18",
+  "platform": "macOS-15.6.1-arm64-arm-64bit",
+  "random_state": 42,
+  "features": {
+    "numeric": [
+      "time",
+      "days",
+      "median_aoa",
+      "levdistfrac",
+      "src_freq_lm",
+      "dest_freq_lm"
+    ],
+    "categorical": [
+      "token_pos",
+      "token_morph",
+      "token_edges",
+      "category"
+    ]
+  },
+  "threshold": 0.7281287152992902
+}
