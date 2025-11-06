@@ -1,4 +1,4 @@
-name: erdos_ds_environment
+name: lingpredict
 channels:
   - conda-forge
 dependencies:
@@ -19,6 +19,9 @@ dependencies:
   - missingno
   - pygam
   - freetype = 2.13.3
+  - wordfreq
+  - editdistance
+  - unidecode
   - pip:
       - cinemagoer
       - lxml
