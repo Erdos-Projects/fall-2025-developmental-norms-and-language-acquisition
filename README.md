@@ -19,7 +19,7 @@ Do words acquired later in first-language development (L1) show higher error rat
 - Publicly available at [wordbank.stanford.edu](https://wordbank.stanford.edu).
 
 ## Instructions:
-1. Create & activate the environment
+1. Create & activate the environment:
   ```
   conda env create -f environment.yml
   conda activate lingpredict   # or the name defined in environment.yml
@@ -30,4 +30,4 @@ Do words acquired later in first-language development (L1) show higher error rat
          data/raw/data_es_en \
          data/raw/data_fr_en
   ```
-3.	Run run_all.sh
+3.	Run `run_all.sh`.
