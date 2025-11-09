@@ -118,8 +118,8 @@ elif SAMPLE_BY == "root":
 
 # %%
 aoa_df = (
-    df[['uni_lemma', 'median_aoa']]
-    .dropna(subset=['uni_lemma', 'median_aoa'])
+    df[['uni_lemma', 'median_aoa_p']]
+    .dropna(subset=['uni_lemma', 'median_aoa_p'])
     .drop_duplicates(subset='uni_lemma')
     .rename(columns={'uni_lemma': 'Word'})
 )
@@ -186,7 +186,7 @@ if USE_TRANSLATION:
         if aoa_df is not None:
             aoa_key = trans if DEST_LANG.lower() == "en" else r
             hit = aoa_df.loc[aoa_df["Word"] == aoa_key]
-            aoa_val = float(hit["median_aoa"].iloc[0]) if not hit.empty else np.nan
+            aoa_val = float(hit["median_aoa_p"].iloc[0]) if not hit.empty else np.nan
         else:
             aoa_val = np.nan
         # wordfreq in src/dest languages (LM frequencies)

@@ -63,7 +63,7 @@ BASE_NUM_COLS = ["time", "days"]
 
 # Enhanced: add category (cat) + extra nums
 ENH_CAT_COLS = BASE_CAT_COLS + ["category"]
-ENH_NUM_COLS = BASE_NUM_COLS + ["median_aoa", "levdistfrac", "src_freq_lm", "dest_freq_lm"]
+ENH_NUM_COLS = BASE_NUM_COLS + ["median_aoa_p", "levdistfrac", "src_freq_lm", "dest_freq_lm"]
 
 
 print('Params set. Edit paths and flags above as needed.')
@@ -95,7 +95,7 @@ NUM_COLS_ALL = [
     "time",
     "days",
     "growth_rate",
-    "median_aoa",
+    "median_aoa_p",
     "levdist",
     "levdistfrac",
     "aoa_lookup",

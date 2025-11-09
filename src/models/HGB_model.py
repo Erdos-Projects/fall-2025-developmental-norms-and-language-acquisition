@@ -58,7 +58,7 @@ BASE_NUM_COLS = ["time", "days"]  # basic numerics that usually help
 
 
 ENH_CAT_COLS = BASE_CAT_COLS + ["category"]
-ENH_NUM_COLS = BASE_NUM_COLS + ["median_aoa", "levdistfrac", "src_freq_lm", "dest_freq_lm"]
+ENH_NUM_COLS = BASE_NUM_COLS + ["median_aoa_p", "levdistfrac", "src_freq_lm", "dest_freq_lm"]
 
 
 
