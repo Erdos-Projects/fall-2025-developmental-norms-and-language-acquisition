@@ -18,9 +18,9 @@ from sklearn.metrics import (roc_auc_score, average_precision_score,
 
 
 # ---- Paths: EDIT THESE ----
-TRAIN_PATH = Path('data/processed/train_subset_l1-en_l2-es_plus.parquet')
-DEV_PATH   = Path('data/processed/dev_subset_l1-en_l2-es_plus.parquet')
-TEST_PATH  = Path('data/processed/test_subset_l1-en_l2-es_plus.parquet')
+TRAIN_PATH = Path('data/processed/complete_data/train_subset_l1-en_l2-es_plus.parquet')
+DEV_PATH   = Path('data/processed/complete_data/dev_subset_l1-en_l2-es_plus.parquet')
+TEST_PATH  = Path('data/processed/complete_data/test_subset_l1-en_l2-es_plus.parquet')
 
 # ---- Output directory ----
 OUTDIR = Path('./Gradient_boosting_outputs_notebook')
