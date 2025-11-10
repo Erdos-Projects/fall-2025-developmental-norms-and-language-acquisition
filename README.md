@@ -24,10 +24,26 @@ Do words acquired later in first-language development (L1) show higher error rat
   conda env create -f environment.yml
   conda activate lingpredict   # or the name defined in environment.yml
   ```
-2. Download the [SLAM dataset from Dataverse](https://doi.org/10.7910/DVN/8SWHNO). (Their license precludes us from adding these files to the repository.) Save these files to `data/raw/data_en_es`, `data/raw/data_es_en`, and `data/raw/data_fr_en`:
+2. Download the [SLAM dataset from Dataverse](https://doi.org/10.7910/DVN/8SWHNO). (Their license precludes us from adding these files to the repository.) Unzip `dataverse_files-2018.zip` and the resulting tarball files `data_en_es.tar.gz`, `data_es_en.tar.gz`, and `data_fr_en.tar.gz`. Move the resulting folders `data_en_es`, `data_es_en`, and `data_fr_en` into `data/raw`. The resulting file structure should appear as follows:
   ```
-  mkdir -p data/raw/data_en_es \
-         data/raw/data_es_en \
-         data/raw/data_fr_en
+  data/
+  ├── processed/
+  │   ├── language_translation_table.csv
+  │   ├── wordbank_en_logistic_fits.csv
+  │   └── wordbank_es_logistic_fits.csv
+  └── raw/
+      ├── data_en_es/
+      │   ├── en_es.slam.20190204.dev
+      │   ├── en_es.slam.20190204.dev.key
+      │   ├── en_es.slam.20190204.test
+      │   ├── en_es.slam.20190204.test.key
+      │   ├── en_es.slam.20190204.train
+      │   └── (Metadata files: CHANGELOG.md, CITING.md, LICENSE.md)
+      ├── data_es_en/
+      │   └── (Files structured identically to data_en_es)
+      ├── data_fr_en/
+      │   └── (Files structured identically to data_en_es)
+      └── Wordbank/
+          └── (Supplementary linguistic files)
   ```
 3.	Run `run_all.sh`.
