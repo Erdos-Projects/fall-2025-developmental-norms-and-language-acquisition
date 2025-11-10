@@ -40,9 +40,9 @@ Do words acquired later in first-language development (L1) show higher error rat
       │   ├── en_es.slam.20190204.train
       │   └── (Metadata files: CHANGELOG.md, CITING.md, LICENSE.md)
       ├── data_es_en/
-      │   └── (Files structured identically to data_en_es)
+      │   └── (Files structured similarly to data_en_es)
       ├── data_fr_en/
-      │   └── (Files structured identically to data_en_es)
+      │   └── (Files structured similarly to data_en_es)
       └── Wordbank/
           └── (Supplementary linguistic files)
   ```
