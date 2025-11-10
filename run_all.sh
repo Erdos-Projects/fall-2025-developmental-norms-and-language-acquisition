@@ -34,10 +34,16 @@ python "src/models/inference_final.py"
 # Fit predictive models
 printf '%.0s=' {1..80}; echo ""
 echo "Fitting predictive models:"
-echo "Logistic and Histogram-based Gradient Boosting"
+echo "Logistic model"
 printf '%.0s=' {1..80}; echo ""
 
 python "src/models/LG_model.py"
+
+printf '%.0s=' {1..80}; echo ""
+echo "Histogram-based Gradient Boosting model"
+printf '%.0s=' {1..80}; echo ""
+
+
 python "src/models/HGB_model.py"
 
 printf '%.0s=' {1..80}; echo ""

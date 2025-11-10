@@ -65,10 +65,10 @@ for split in splits:
 
         df_sub = df[(df['l1'] == l1_val) & (df['l2'] == l2_val)].copy()
 
-        #parquet_path = f"{out_dir}/complete_data/train_subset_l1-{l1_val}_l2-{l2_val}.parquet"
-        parquet_path = f"{out_dir}/complete_data/{split}_subset_l1-{l1_val}_l2-{l2_val}.parquet"
-        #csv_path     = f"{out_dir}/complete_data/train_subset_l1-{l1_val}_l2-{l2_val}.csv"
-        csv_path     = f"{out_dir}/complete_data/{split}_subset_l1-{l1_val}_l2-{l2_val}.csv"
+        #parquet_path = f"{out_dir}/complete_data/{split}_subset_l1-{l1_val}_l2-{l2_val}.parquet"
+        parquet_path = f"{out_dir}/{split}_subset_l1-{l1_val}_l2-{l2_val}.parquet"
+        #csv_path     = f"{out_dir}/complete_data/{split}_subset_l1-{l1_val}_l2-{l2_val}.csv"
+        csv_path     = f"{out_dir}/{split}_subset_l1-{l1_val}_l2-{l2_val}.csv"
 
         df_sub.to_parquet(parquet_path, index=False)
         df_sub.to_csv(csv_path, index=False)

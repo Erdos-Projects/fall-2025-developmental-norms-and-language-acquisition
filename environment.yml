@@ -23,6 +23,7 @@ dependencies:
   - editdistance
   - unidecode
   - fastparquet
+  - googletrans
   - pip:
       - cinemagoer
       - lxml

@@ -38,9 +38,13 @@ warnings.filterwarnings(
 )
 
 # ---- Paths: EDIT THESE ----
-TRAIN_PATH = Path('data/processed/complete_data/train_subset_l1-en_l2-es_plus.parquet')
-DEV_PATH   = Path('data/processed/complete_data/dev_subset_l1-en_l2-es_plus.parquet')
-TEST_PATH  = Path('data/processed/complete_data/test_subset_l1-en_l2-es_plus.parquet')
+#TRAIN_PATH = Path('data/processed/complete_data/train_subset_l1-en_l2-es_plus.parquet')
+#DEV_PATH   = Path('data/processed/complete_data/dev_subset_l1-en_l2-es_plus.parquet')
+#TEST_PATH  = Path('data/processed/complete_data/test_subset_l1-en_l2-es_plus.parquet')
+
+TRAIN_PATH = Path('data/processed/train_subset_l1-en_l2-es_plus.parquet')
+DEV_PATH   = Path('data/processed/dev_subset_l1-en_l2-es_plus.parquet')
+TEST_PATH  = Path('data/processed/test_subset_l1-en_l2-es_plus.parquet')
 
 # ---- Output directory ----
 OUTDIR = Path('./outputs_notebook')
@@ -136,7 +140,8 @@ def ensure_columns_and_cast(frames, cat_cols, label_col: str, fill_missing=True)
                 if c not in frame.columns:
                     frame[c] = pd.Series(pd.NA, index=frame.index)
         for c in (c for c in cat_cols if c in frame.columns):
-            frame[c] = frame[c].astype("string")
+            #frame[c] = frame[c].astype("string")
+            frame[c] = frame[c].astype('object').replace(pd.NA, np.nan)
         if label_col in frame.columns:
             frame[label_col] = frame[label_col].astype(int)
 
@@ -472,6 +477,3 @@ enhanced_art = run_once(
     group_col=GROUP_COL,
     evaluate_test=True
 )
-
-
-
